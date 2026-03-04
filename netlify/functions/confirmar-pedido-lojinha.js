@@ -13,6 +13,8 @@ exports.handler = async (event) => {
 
     const supabaseUrl        = process.env.VITE_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+    console.log("URL:", supabaseUrl);
+    console.log("KEY (primeiros 20 chars):", supabaseServiceKey?.slice(0, 20));
 
     // Busca o pedido para calcular o valor
     const getRes = await fetch(
