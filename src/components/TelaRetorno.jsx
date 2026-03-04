@@ -1,8 +1,10 @@
+// components/TelaRetorno.jsx
 import React from "react";
 
-export default function TelaRetorno({ status, onVoltar }) {
+export default function TelaRetorno({ status, forma, onVoltar }) {
   const isFail = status === "falhou";
   const isLojinha = status === "lojinha";
+  const isPix = forma === "pix_lojinha";
 
   return (
     <div className="card">
@@ -17,14 +19,14 @@ export default function TelaRetorno({ status, onVoltar }) {
             ? "Pagamento não confirmado!"
             : isLojinha
               ? "Pedido reservado com sucesso!"
-              : "Se você realizou o pix, irá aparecer uma confirmação no seu Email em instantes!"}
+              : "Pedido recebido!"}
         </div>
         <div className="suc-sub">
           {isFail
             ? "O pagamento não foi processado. Você pode tentar novamente."
             : isLojinha
-              ? "Seu pedido foi salvo. Compareça à lojinha TP para efetuar o pagamento com cartão, fique atento ao WhatsApp para saber a data de retirada dos uniformes!"
-              : "Assim que a confirmação do pagamento aparecer no seu Email, fique atento no WhatsApp, informaremos em breve a data para você retirar o seu fardamento na loja TP. Obrigado!"}
+              ? `Seu pedido foi salvo. Compareça à lojinha TP para efetuar o pagamento${isPix ? " via PIX" : " com cartão"}, fique atento ao WhatsApp para saber a data de retirada dos uniformes!`
+              : "Fique atento no WhatsApp, informaremos em breve a data para você retirar o seu fardamento na loja TP. Obrigado!"}
         </div>
         <br />
         <button className="btn-ghost" onClick={onVoltar}>

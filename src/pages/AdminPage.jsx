@@ -1,3 +1,4 @@
+// pages/AdminPage.jsx
 import React, { useState, useEffect } from "react";
 import { supabase } from "../utils/supabase";
 import { C, FORMA_LABEL } from "../constants/theme";
@@ -27,10 +28,11 @@ export default function AdminPage({ onSair, adminSenha }) {
         .order("hora", { ascending: false });
       if (e1) throw e1;
 
+      // Busca AMBOS os status pendentes de lojinha (pix e cartão)
       const { data: lojinha, error: e2 } = await supabase
         .from("pedidos")
         .select("*")
-        .eq("pagamento_status", "pendente_credito_lojinha")
+        .in("pagamento_status", ["pendente_credito_lojinha", "pendente_pix_lojinha"])
         .order("hora", { ascending: false });
       if (e2) throw e2;
 
@@ -436,9 +438,14 @@ export default function AdminPage({ onSair, adminSenha }) {
                       })}
                     </div>
                     <div className="pedido-total-lbl">
-                      {fmt(calcTotal(p.pecas) * 1.05)}
+                      {/* PIX na lojinha: sem acréscimo | Cartão: +5% */}
+                      {fmt(
+                        p.forma_pagamento === "pix_lojinha"
+                          ? calcTotal(p.pecas)
+                          : calcTotal(p.pecas) * 1.05
+                      )}
                       <span className="pedido-forma">
-                        via Cartão na lojinha
+                        via {FORMA_LABEL[p.forma_pagamento] || p.forma_pagamento}
                       </span>
                     </div>
                   </div>

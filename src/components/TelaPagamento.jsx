@@ -1,3 +1,4 @@
+// components/TelaPagamento.jsx
 import React, { useState, useRef, useEffect } from "react";
 import { supabase } from "../utils/supabase";
 import { fmt, fmt2, calcTotal, gerarTags } from "../utils/helpers";
@@ -7,29 +8,23 @@ export default function TelaPagamento({ nome, pecas, onVoltar }) {
   const [formaSelecionada, setFormaSelecionada] = useState(null);
   const [processando, setProcessando] = useState(false);
   const [erro, setErro] = useState("");
-  const [mostrarPendente, setMostrarPendente] = useState(false);
   const [mostrarLojinha, setMostrarLojinha] = useState(false);
-  const timerRef = useRef(null);
   const pedidoIdRef = useRef(null);
 
-  useEffect(() => () => clearTimeout(timerRef.current), []);
-
-  if (mostrarPendente)
-    return <TelaRetorno status="pendente" onVoltar={onVoltar} />;
   if (mostrarLojinha)
-    return <TelaRetorno status="lojinha" onVoltar={onVoltar} />;
+    return <TelaRetorno status="lojinha" forma={formaSelecionada} onVoltar={onVoltar} />;
 
   const totalBase = calcTotal(pecas);
 
   const opcoes = [
     {
-      id: "pix",
+      id: "pix_lojinha",
       icone: "❖",
-      nome: "Pix",
-      desc: "Aprovação imediata · Sem acréscimo",
+      nome: "Pix na lojinha",
+      desc: "Pague presencialmente na loja TP · Sem acréscimo",
       valor: totalBase,
-      cls: "pix",
-      valCls: "pix-val",
+      cls: "lojinha",
+      valCls: "lojinha-val",
     },
     {
       id: "credito_lojinha",
@@ -51,6 +46,7 @@ export default function TelaPagamento({ nome, pecas, onVoltar }) {
     try {
       let pedidoId = pedidoIdRef.current;
 
+      // IDEMPOTÊNCIA: só cria novo pedido se não tiver um já criado nesta sessão
       if (!pedidoId) {
         const { data: pedidoSalvo, error: errSalvar } = await supabase
           .from("pedidos")
@@ -61,7 +57,9 @@ export default function TelaPagamento({ nome, pecas, onVoltar }) {
               pagamento_status:
                 formaSelecionada === "credito_lojinha"
                   ? "pendente_credito_lojinha"
-                  : "pendente",
+                  : formaSelecionada === "pix_lojinha"
+                    ? "pendente_pix_lojinha"
+                    : "pendente",
               forma_pagamento: formaSelecionada,
             },
           ])
@@ -72,6 +70,7 @@ export default function TelaPagamento({ nome, pecas, onVoltar }) {
         pedidoId = pedidoSalvo.id;
         pedidoIdRef.current = pedidoId;
       } else {
+        // Se já tem pedido mas mudou a forma de pagamento, atualiza
         await supabase
           .from("pedidos")
           .update({
@@ -79,34 +78,18 @@ export default function TelaPagamento({ nome, pecas, onVoltar }) {
             pagamento_status:
               formaSelecionada === "credito_lojinha"
                 ? "pendente_credito_lojinha"
-                : "pendente",
+                : formaSelecionada === "pix_lojinha"
+                  ? "pendente_pix_lojinha"
+                  : "pendente",
           })
           .eq("id", pedidoId);
       }
 
-      if (formaSelecionada === "credito_lojinha") {
+      // Ambas as formas são pagamento na lojinha — não precisa de checkout externo
+      if (formaSelecionada === "credito_lojinha" || formaSelecionada === "pix_lojinha") {
         setMostrarLojinha(true);
         return;
       }
-
-      const response = await fetch("/.netlify/functions/criar-pagamento", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pedidoId,
-          forma: formaSelecionada,
-          nomeAluna: nome,
-        }),
-      });
-
-      const data = await response.json();
-      if (!response.ok || !data.checkout_url) {
-        throw new Error(data.error || "Erro ao gerar link de pagamento.");
-      }
-
-      sessionStorage.setItem("pagamento_pendente", "true");
-      timerRef.current = setTimeout(() => setMostrarPendente(true), 10000);
-      window.location.href = data.checkout_url;
     } catch (e) {
       console.error(e);
       setErro("Erro ao processar. Tente novamente em instantes.");
@@ -170,18 +153,20 @@ export default function TelaPagamento({ nome, pecas, onVoltar }) {
           ← Voltar
         </button>
         <button
-          className={`btn-primary ${formaSelecionada === "pix" ? "btn-pix" : formaSelecionada === "credito_lojinha" ? "btn-lojinha" : ""}`}
+          className={`btn-primary ${
+            formaSelecionada === "credito_lojinha" || formaSelecionada === "pix_lojinha"
+              ? "btn-lojinha"
+              : ""
+          }`}
           style={{ flex: 1, marginTop: 0 }}
           disabled={!formaSelecionada || processando}
           onClick={irParaPagamento}
         >
           {processando
             ? "Processando…"
-            : formaSelecionada === "credito_lojinha"
+            : formaSelecionada
               ? "Reservar pedido →"
-              : formaSelecionada
-                ? `Pagar ${fmt(opcaoAtual.valor)} →`
-                : "Selecione uma forma de pagamento"}
+              : "Selecione uma forma de pagamento"}
         </button>
       </div>
     </div>
