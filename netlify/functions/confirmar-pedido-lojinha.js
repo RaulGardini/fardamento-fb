@@ -25,7 +25,10 @@ exports.handler = async (event) => {
       }
     );
 
-    if (!getRes.ok) throw new Error("Erro ao buscar pedido");
+    if (!getRes.ok) {
+      const errBody = await getRes.text();
+      throw new Error(`Erro ao buscar pedido (status ${getRes.status}): ${errBody}`);
+    }
     const [pedido] = await getRes.json();
     if (!pedido) throw new Error("Pedido não encontrado");
 
