@@ -22,6 +22,6 @@ export const C = {
 };
 
 export const FORMA_LABEL = {
-  pix_lojinha:     "Pix na lojinha",
-  credito_lojinha: "Cartão na lojinha",
+  pix_lojinha:     "Pix",
+  credito_lojinha: "Cartão de crédito",
 };

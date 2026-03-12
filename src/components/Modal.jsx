@@ -13,7 +13,7 @@ export default function Modal({ nome, onConfirm, onCancel, tipo }) {
         <div className="modal-sub">
           {isConfirm ? (
             <>
-              Confirmar que <strong>{nome}</strong> pagou com cartão na lojinha?
+              Confirmar que <strong>{nome}</strong> Realizou o pagamento?
               <br />O pedido será marcado como pago.
             </>
           ) : (
