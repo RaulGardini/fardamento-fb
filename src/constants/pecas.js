@@ -3,13 +3,11 @@
    ══════════════════════════════════════════ */
 
 import imgBlusa from "../img/Blusa.jpeg";
-import imgCalca from "../img/Calca.jpeg";
 import imgConjunto from "../img/Conjunto.jpeg";
 
 export const PECAS_CONFIG = [
   { img: imgBlusa,    nome: "Blusa",    preco: 65.00 },
-  { img: imgCalca,    nome: "Calça",    preco: 130.00 },
-  { img: imgConjunto, nome: "Conjunto", preco: 180.00 },
+  { img: imgConjunto, nome: "Conjunto", preco: 180.00, conjunto: true },
 ];
 
 export const NOMES_PECAS = PECAS_CONFIG.map(p => p.nome);

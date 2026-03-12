@@ -20,10 +20,12 @@ export default function AlunaPage({ statusRetorno, onStepChange }) {
   const nomeCompleto = `${nome.trim()} ${sobrenome.trim()}`.trim();
   const nomeValido = nome.trim().length >= 2 && sobrenome.trim().length >= 2;
 
-  const totalQtd = Object.values(pecas).reduce(
-    (a, p) => a + Object.values(p.tamanhos).reduce((s, v) => s + v, 0),
-    0
-  );
+  const totalQtd = PECAS_CONFIG.reduce((a, { nome, conjunto }) => {
+    if (conjunto) {
+      return a + Object.values(pecas[nome].tamanhos_blusa).reduce((s, v) => s + v, 0);
+    }
+    return a + Object.values(pecas[nome].tamanhos).reduce((s, v) => s + v, 0);
+  }, 0);
   const totalVal = calcTotal(pecas);
 
   function togglePeca(p) {
@@ -35,14 +37,26 @@ export default function AlunaPage({ statusRetorno, onStepChange }) {
     });
   }
 
-  function setQty(peca, chave, val) {
-    setPecas(prev => ({
-      ...prev,
-      [peca]: {
-        ...prev[peca],
-        tamanhos: { ...prev[peca].tamanhos, [chave]: val },
-      },
-    }));
+  function setQty(peca, chave, val, subTipo) {
+    setPecas(prev => {
+      if (subTipo) {
+        const campo = subTipo === "blusa" ? "tamanhos_blusa" : "tamanhos_calca";
+        return {
+          ...prev,
+          [peca]: {
+            ...prev[peca],
+            [campo]: { ...prev[peca][campo], [chave]: val },
+          },
+        };
+      }
+      return {
+        ...prev,
+        [peca]: {
+          ...prev[peca],
+          tamanhos: { ...prev[peca].tamanhos, [chave]: val },
+        },
+      };
+    });
   }
 
   function reiniciar() {
@@ -129,7 +143,7 @@ export default function AlunaPage({ statusRetorno, onStepChange }) {
       <div className="card">
         <div className="card-title">Escolha o fardamento</div>
         <div className="peca-grid">
-          {PECAS_CONFIG.map(({ nome: pNome, preco, img }) => (
+          {PECAS_CONFIG.map(({ nome: pNome, preco, img, conjunto }) => (
             <div
               key={pNome}
               className={`peca-row ${pecas[pNome].ativo ? "ativa" : ""}`}
@@ -150,6 +164,35 @@ export default function AlunaPage({ statusRetorno, onStepChange }) {
                       <div className="peca-preco">{fmt(preco)}</div>
                     </div>
                     {(() => {
+                      if (conjunto) {
+                        const blusaItens = TODAS_CHAVES.filter(
+                          k => (pecas[pNome].tamanhos_blusa[k] || 0) > 0
+                        );
+                        const calcaItens = TODAS_CHAVES.filter(
+                          k => (pecas[pNome].tamanhos_calca[k] || 0) > 0
+                        );
+                        if (blusaItens.length === 0 && calcaItens.length === 0) return null;
+                        return (
+                          <div className="peca-tags-resumo">
+                            {blusaItens.map(k => (
+                              <span key={"b-"+k} className="peca-tag-mini">
+                                Bl {k.replace("Adulto ", "").replace("Infantil ", "Inf ")}
+                                {pecas[pNome].tamanhos_blusa[k] > 1
+                                  ? ` ×${pecas[pNome].tamanhos_blusa[k]}`
+                                  : ""}
+                              </span>
+                            ))}
+                            {calcaItens.map(k => (
+                              <span key={"c-"+k} className="peca-tag-mini">
+                                Ca {k.replace("Adulto ", "").replace("Infantil ", "Inf ")}
+                                {pecas[pNome].tamanhos_calca[k] > 1
+                                  ? ` ×${pecas[pNome].tamanhos_calca[k]}`
+                                  : ""}
+                              </span>
+                            ))}
+                          </div>
+                        );
+                      }
                       const itens = TODAS_CHAVES.filter(
                         k => (pecas[pNome].tamanhos[k] || 0) > 0
                       );
@@ -173,27 +216,73 @@ export default function AlunaPage({ statusRetorno, onStepChange }) {
                     className="grupos-wrap"
                     onClick={e => e.stopPropagation()}
                   >
-                    {GRUPOS.map(({ label, tamanhos }) => (
-                      <div key={label} className="grupo-bloco">
-                        <div className={`grupo-label ${label.toLowerCase()}`}>
-                          {label}
-                        </div>
-                        <div className="tam-grid">
-                          {tamanhos.map(t => {
-                            const chave = `${label} ${t}`;
+                    {conjunto ? (
+                      <>
+                        {["blusa", "calca"].map(subTipo => (
+                          <div key={subTipo} style={{ marginBottom: 12 }}>
+                            <div style={{ color: C.muted, fontSize: ".75rem", fontWeight: 600, marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>
+                              Tamanho da {subTipo === "blusa" ? "Blusa" : "Calça"}
+                            </div>
+                            {GRUPOS.map(({ label, tamanhos }) => (
+                              <div key={label} className="grupo-bloco">
+                                <div className={`grupo-label ${label.toLowerCase()}`}>
+                                  {label}
+                                </div>
+                                <div className="tam-grid">
+                                  {tamanhos.map(t => {
+                                    const chave = `${label} ${t}`;
+                                    const campo = subTipo === "blusa" ? "tamanhos_blusa" : "tamanhos_calca";
+                                    return (
+                                      <div key={chave} className="tam-item">
+                                        <span className="tam-label">{t}</span>
+                                        <QtyControl
+                                          value={pecas[pNome][campo][chave] || 0}
+                                          onChange={v => setQty(pNome, chave, v, subTipo)}
+                                        />
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                        {(() => {
+                          const totalBlusa = Object.values(pecas[pNome].tamanhos_blusa).reduce((s, v) => s + v, 0);
+                          const totalCalca = Object.values(pecas[pNome].tamanhos_calca).reduce((s, v) => s + v, 0);
+                          if (totalBlusa > 0 && totalCalca > 0 && totalBlusa !== totalCalca) {
                             return (
-                              <div key={chave} className="tam-item">
-                                <span className="tam-label">{t}</span>
-                                <QtyControl
-                                  value={pecas[pNome].tamanhos[chave] || 0}
-                                  onChange={v => setQty(pNome, chave, v)}
-                                />
+                              <div style={{ color: "#f59e0b", fontSize: ".75rem", marginTop: 4 }}>
+                                A quantidade de blusas ({totalBlusa}) e calças ({totalCalca}) deve ser igual.
                               </div>
                             );
-                          })}
+                          }
+                          return null;
+                        })()}
+                      </>
+                    ) : (
+                      GRUPOS.map(({ label, tamanhos }) => (
+                        <div key={label} className="grupo-bloco">
+                          <div className={`grupo-label ${label.toLowerCase()}`}>
+                            {label}
+                          </div>
+                          <div className="tam-grid">
+                            {tamanhos.map(t => {
+                              const chave = `${label} ${t}`;
+                              return (
+                                <div key={chave} className="tam-item">
+                                  <span className="tam-label">{t}</span>
+                                  <QtyControl
+                                    value={pecas[pNome].tamanhos[chave] || 0}
+                                    onChange={v => setQty(pNome, chave, v)}
+                                  />
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
               </div>
@@ -216,7 +305,12 @@ export default function AlunaPage({ statusRetorno, onStepChange }) {
         <button
           className="btn-primary"
           onClick={() => setStep("pagamento")}
-          disabled={totalQtd === 0}
+          disabled={totalQtd === 0 || PECAS_CONFIG.some(({ nome, conjunto }) => {
+            if (!conjunto) return false;
+            const tb = Object.values(pecas[nome].tamanhos_blusa).reduce((s, v) => s + v, 0);
+            const tc = Object.values(pecas[nome].tamanhos_calca).reduce((s, v) => s + v, 0);
+            return (tb > 0 || tc > 0) && tb !== tc;
+          })}
         >
           Continuar para pagamento →
         </button>

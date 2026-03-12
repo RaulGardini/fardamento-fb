@@ -50,15 +50,22 @@ exports.handler = async (event) => {
     const isPix = pedido.pagamento_status === "pendente_pix_lojinha";
 
     // Preços das peças — mantenha sincronizado com PECAS_CONFIG do frontend
-    const PRECOS = {
-      "Blusa": 65, "Calça": 130, "Conjunto": 180,
-    };
+    const PRECOS = { "Blusa": 65, "Conjunto": 180 };
+    // Peças que são conjunto (blusa + calça com tamanhos separados)
+    const CONJUNTOS = ["Conjunto"];
 
     let totalBase = 0;
     for (const [nome, preco] of Object.entries(PRECOS)) {
-      const tamanhos = pedido.pecas?.[nome]?.tamanhos || {};
-      for (const qty of Object.values(tamanhos)) {
-        totalBase += (qty || 0) * preco;
+      if (CONJUNTOS.includes(nome)) {
+        const tamBlusa = pedido.pecas?.[nome]?.tamanhos_blusa || {};
+        for (const qty of Object.values(tamBlusa)) {
+          totalBase += (qty || 0) * preco;
+        }
+      } else {
+        const tamanhos = pedido.pecas?.[nome]?.tamanhos || {};
+        for (const qty of Object.values(tamanhos)) {
+          totalBase += (qty || 0) * preco;
+        }
       }
     }
 
