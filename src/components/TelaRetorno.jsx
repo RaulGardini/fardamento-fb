@@ -25,7 +25,7 @@ export default function TelaRetorno({ status, forma, onVoltar }) {
           {isFail
             ? "O pagamento não foi processado. Você pode tentar novamente."
             : isLojinha
-              ? `Seu pedido foi salvo. Compareça à lojinha TP para efetuar o pagamento${isPix ? " via PIX" : " com cartão"}, fique atento ao WhatsApp para saber a data de retirada dos uniformes!`
+              ? `Seu pedido foi salvo. Entre em contato com a Academia de dança FB para efetuar o pagamento${isPix ? " via PIX" : " com cartão"}, fique atento ao WhatsApp para saber a data de retirada dos uniformes!`
               : "Fique atento no WhatsApp, informaremos em breve a data para você retirar o seu fardamento na loja TP. Obrigado!"}
         </div>
         <br />
