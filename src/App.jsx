@@ -33,7 +33,7 @@ export default function App() {
       <div className="wrap">
         {/* ── Header ── */}
         <div className="logo">
-          <div className="logo-title">Fardamento TP 2026</div>
+          <div className="logo-title">Fardamento FB 2026</div>
           <div className="logo-sub">
             {tela === "aluna"
               ? "Escolha seu uniforme"
