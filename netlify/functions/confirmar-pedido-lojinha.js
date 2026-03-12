@@ -13,6 +13,11 @@ exports.handler = async (event) => {
 
     const supabaseUrl        = process.env.VITE_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error(`Variáveis de ambiente faltando: ${!supabaseUrl ? 'VITE_SUPABASE_URL ' : ''}${!supabaseServiceKey ? 'SUPABASE_SERVICE_KEY' : ''}`);
+    }
+
     console.log("URL:", supabaseUrl);
     console.log("KEY (primeiros 20 chars):", supabaseServiceKey?.slice(0, 20));
 
@@ -46,8 +51,7 @@ exports.handler = async (event) => {
 
     // Preços das peças — mantenha sincronizado com PECAS_CONFIG do frontend
     const PRECOS = {
-      "Blusa": 60, "Regata": 30, "Short": 60,
-      "Calça Moletom": 90, "Blusa Moletom": 90,
+      "Blusa": 65, "Calça": 130, "Conjunto": 180,
     };
 
     let totalBase = 0;

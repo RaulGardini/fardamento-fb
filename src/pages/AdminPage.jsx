@@ -74,7 +74,10 @@ export default function AdminPage({ onSair, adminSenha }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pedidoId: modalId, senha: adminSenha }),
       });
-      if (!res.ok) throw new Error("Erro ao confirmar");
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Erro ao confirmar");
+      }
       setModalId(null);
       setModalTipo("remover");
       carregar();
@@ -98,6 +101,12 @@ export default function AdminPage({ onSair, adminSenha }) {
       Object.fromEntries(TODAS_CHAVES.map(k => [k, 0])),
     ])
   );
+  const totaisPendentes = Object.fromEntries(
+    NOMES_PECAS.map(p => [
+      p,
+      Object.fromEntries(TODAS_CHAVES.map(k => [k, 0])),
+    ])
+  );
   let receitaTotal = 0;
   (pedidos || []).forEach(p => {
     PECAS_CONFIG.forEach(({ nome, preco }) => {
@@ -105,6 +114,14 @@ export default function AdminPage({ onSair, adminSenha }) {
         const q = p.pecas?.[nome]?.tamanhos?.[chave] || 0;
         totais[nome][chave] += q;
         receitaTotal += q * preco;
+      });
+    });
+  });
+  (pedidosLojinha || []).forEach(p => {
+    PECAS_CONFIG.forEach(({ nome }) => {
+      TODAS_CHAVES.forEach(chave => {
+        const q = p.pecas?.[nome]?.tamanhos?.[chave] || 0;
+        totaisPendentes[nome][chave] += q;
       });
     });
   });
@@ -258,14 +275,16 @@ export default function AdminPage({ onSair, adminSenha }) {
                 </button>
               ))}
             </div>
-            {pecasFiltradas.map(peca => (
+            {pecasFiltradas.map(peca => {
+              const allSizes = [...new Set(GRUPOS.flatMap(g => g.tamanhos))];
+              return (
               <div key={peca} style={{ marginBottom: 20 }}>
                 <div className="sec-label">{peca}</div>
                 <table className="tam-table">
                   <thead>
                     <tr>
                       <th style={{ textAlign: "left", width: 80 }}>Grupo</th>
-                      {["PP", "P", "M", "G"].map(t => (
+                      {allSizes.map(t => (
                         <th key={t}>{t}</th>
                       ))}
                       <th>Total</th>
@@ -275,6 +294,10 @@ export default function AdminPage({ onSair, adminSenha }) {
                     {GRUPOS.map(({ label, tamanhos }) => {
                       const sub = tamanhos.reduce(
                         (s, t) => s + (totais[peca][`${label} ${t}`] || 0),
+                        0
+                      );
+                      const subPend = tamanhos.reduce(
+                        (s, t) => s + (totaisPendentes[peca][`${label} ${t}`] || 0),
                         0
                       );
                       return (
@@ -290,7 +313,7 @@ export default function AdminPage({ onSair, adminSenha }) {
                           >
                             {label}
                           </td>
-                          {["PP", "P", "M", "G"].map(t => {
+                          {allSizes.map(t => {
                             if (!tamanhos.includes(t))
                               return (
                                 <td key={t}>
@@ -298,6 +321,7 @@ export default function AdminPage({ onSair, adminSenha }) {
                                 </td>
                               );
                             const v = totais[peca][`${label} ${t}`] || 0;
+                            const pend = totaisPendentes[peca][`${label} ${t}`] || 0;
                             return (
                               <td key={t}>
                                 <span
@@ -305,6 +329,11 @@ export default function AdminPage({ onSair, adminSenha }) {
                                 >
                                   {v > 0 ? v : "–"}
                                 </span>
+                                {pend > 0 && (
+                                  <span style={{ color: C.lojinha || "#f59e0b", fontSize: ".7rem", marginLeft: 2 }}>
+                                    +{pend}
+                                  </span>
+                                )}
                               </td>
                             );
                           })}
@@ -314,6 +343,11 @@ export default function AdminPage({ onSair, adminSenha }) {
                             >
                               {sub || "–"}
                             </span>
+                            {subPend > 0 && (
+                              <span style={{ color: C.lojinha || "#f59e0b", fontSize: ".7rem", marginLeft: 2 }}>
+                                +{subPend}
+                              </span>
+                            )}
                           </td>
                         </tr>
                       );
@@ -321,7 +355,8 @@ export default function AdminPage({ onSair, adminSenha }) {
                   </tbody>
                 </table>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
