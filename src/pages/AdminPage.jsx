@@ -95,34 +95,57 @@ export default function AdminPage({ onSair, adminSenha }) {
   /* ── Cálculos ── */
   const todosPedidos = [...(pedidos || []), ...(pedidosLojinha || [])];
 
-  const totais = Object.fromEntries(
-    NOMES_PECAS.map(p => [
-      p,
-      Object.fromEntries(TODAS_CHAVES.map(k => [k, 0])),
-    ])
-  );
-  const totaisPendentes = Object.fromEntries(
-    NOMES_PECAS.map(p => [
-      p,
-      Object.fromEntries(TODAS_CHAVES.map(k => [k, 0])),
-    ])
-  );
+  // Para peças normais: totais[nome][chave]
+  // Para conjunto: totais["Conjunto_blusa"][chave] e totais["Conjunto_calca"][chave]
+  const todasChavesTotais = {};
+  const todasChavesPendentes = {};
+  PECAS_CONFIG.forEach(({ nome, conjunto }) => {
+    if (conjunto) {
+      todasChavesTotais[nome + "_blusa"] = Object.fromEntries(TODAS_CHAVES.map(k => [k, 0]));
+      todasChavesTotais[nome + "_calca"] = Object.fromEntries(TODAS_CHAVES.map(k => [k, 0]));
+      todasChavesPendentes[nome + "_blusa"] = Object.fromEntries(TODAS_CHAVES.map(k => [k, 0]));
+      todasChavesPendentes[nome + "_calca"] = Object.fromEntries(TODAS_CHAVES.map(k => [k, 0]));
+    } else {
+      todasChavesTotais[nome] = Object.fromEntries(TODAS_CHAVES.map(k => [k, 0]));
+      todasChavesPendentes[nome] = Object.fromEntries(TODAS_CHAVES.map(k => [k, 0]));
+    }
+  });
+
   let receitaTotal = 0;
   (pedidos || []).forEach(p => {
-    PECAS_CONFIG.forEach(({ nome, preco }) => {
-      TODAS_CHAVES.forEach(chave => {
-        const q = p.pecas?.[nome]?.tamanhos?.[chave] || 0;
-        totais[nome][chave] += q;
-        receitaTotal += q * preco;
-      });
+    PECAS_CONFIG.forEach(({ nome, preco, conjunto }) => {
+      if (conjunto) {
+        TODAS_CHAVES.forEach(chave => {
+          const qb = p.pecas?.[nome]?.tamanhos_blusa?.[chave] || 0;
+          const qc = p.pecas?.[nome]?.tamanhos_calca?.[chave] || 0;
+          todasChavesTotais[nome + "_blusa"][chave] += qb;
+          todasChavesTotais[nome + "_calca"][chave] += qc;
+          receitaTotal += qb * preco;
+        });
+      } else {
+        TODAS_CHAVES.forEach(chave => {
+          const q = p.pecas?.[nome]?.tamanhos?.[chave] || 0;
+          todasChavesTotais[nome][chave] += q;
+          receitaTotal += q * preco;
+        });
+      }
     });
   });
   (pedidosLojinha || []).forEach(p => {
-    PECAS_CONFIG.forEach(({ nome }) => {
-      TODAS_CHAVES.forEach(chave => {
-        const q = p.pecas?.[nome]?.tamanhos?.[chave] || 0;
-        totaisPendentes[nome][chave] += q;
-      });
+    PECAS_CONFIG.forEach(({ nome, conjunto }) => {
+      if (conjunto) {
+        TODAS_CHAVES.forEach(chave => {
+          const qb = p.pecas?.[nome]?.tamanhos_blusa?.[chave] || 0;
+          const qc = p.pecas?.[nome]?.tamanhos_calca?.[chave] || 0;
+          todasChavesPendentes[nome + "_blusa"][chave] += qb;
+          todasChavesPendentes[nome + "_calca"][chave] += qc;
+        });
+      } else {
+        TODAS_CHAVES.forEach(chave => {
+          const q = p.pecas?.[nome]?.tamanhos?.[chave] || 0;
+          todasChavesPendentes[nome][chave] += q;
+        });
+      }
     });
   });
 
@@ -131,9 +154,16 @@ export default function AdminPage({ onSair, adminSenha }) {
 
   let pedidosFiltrados = pedidos || [];
   if (filtro !== "Todos") {
-    pedidosFiltrados = pedidosFiltrados.filter(p =>
-      TODAS_CHAVES.some(k => (p.pecas?.[filtro]?.tamanhos?.[k] || 0) > 0)
-    );
+    const filtroCfg = PECAS_CONFIG.find(pc => pc.nome === filtro);
+    pedidosFiltrados = pedidosFiltrados.filter(p => {
+      if (filtroCfg?.conjunto) {
+        return TODAS_CHAVES.some(k =>
+          (p.pecas?.[filtro]?.tamanhos_blusa?.[k] || 0) > 0 ||
+          (p.pecas?.[filtro]?.tamanhos_calca?.[k] || 0) > 0
+        );
+      }
+      return TODAS_CHAVES.some(k => (p.pecas?.[filtro]?.tamanhos?.[k] || 0) > 0);
+    });
   }
   if (busca) {
     pedidosFiltrados = pedidosFiltrados.filter(p =>
@@ -233,11 +263,10 @@ export default function AdminPage({ onSair, adminSenha }) {
               <div className="stat-num">{pedidos?.length}</div>
               <div className="stat-lbl">Pedidos confirmados</div>
             </div>
-            {PECAS_CONFIG.map(({ nome, preco }) => {
-              const qtd = Object.values(totais[nome]).reduce(
-                (s, v) => s + v,
-                0
-              );
+            {PECAS_CONFIG.map(({ nome, preco, conjunto }) => {
+              const qtd = conjunto
+                ? Object.values(todasChavesTotais[nome + "_blusa"]).reduce((s, v) => s + v, 0)
+                : Object.values(todasChavesTotais[nome]).reduce((s, v) => s + v, 0);
               return (
                 <div key={nome} className="stat-card">
                   <div className="stat-num">{qtd}</div>
@@ -277,9 +306,14 @@ export default function AdminPage({ onSair, adminSenha }) {
             </div>
             {pecasFiltradas.map(peca => {
               const allSizes = [...new Set(GRUPOS.flatMap(g => g.tamanhos))];
-              return (
-              <div key={peca} style={{ marginBottom: 20 }}>
-                <div className="sec-label">{peca}</div>
+              const pecaCfg = PECAS_CONFIG.find(p => p.nome === peca);
+              const subTabelas = pecaCfg?.conjunto
+                ? [{ key: peca + "_blusa", label: peca + " (Blusa)" }, { key: peca + "_calca", label: peca + " (Calça)" }]
+                : [{ key: peca, label: peca }];
+
+              return subTabelas.map(({ key, label }) => (
+              <div key={key} style={{ marginBottom: 20 }}>
+                <div className="sec-label">{label}</div>
                 <table className="tam-table">
                   <thead>
                     <tr>
@@ -291,27 +325,27 @@ export default function AdminPage({ onSair, adminSenha }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {GRUPOS.map(({ label, tamanhos }) => {
+                    {GRUPOS.map(({ label: grpLabel, tamanhos }) => {
                       const sub = tamanhos.reduce(
-                        (s, t) => s + (totais[peca][`${label} ${t}`] || 0),
+                        (s, t) => s + (todasChavesTotais[key]?.[`${grpLabel} ${t}`] || 0),
                         0
                       );
                       const subPend = tamanhos.reduce(
-                        (s, t) => s + (totaisPendentes[peca][`${label} ${t}`] || 0),
+                        (s, t) => s + (todasChavesPendentes[key]?.[`${grpLabel} ${t}`] || 0),
                         0
                       );
                       return (
-                        <tr key={label}>
+                        <tr key={grpLabel}>
                           <td
                             style={{
                               textAlign: "left",
                               color:
-                                label === "Adulto" ? "#34d399" : "#6ee7b7",
+                                grpLabel === "Adulto" ? "#34d399" : "#6ee7b7",
                               fontWeight: 600,
                               fontSize: ".78rem",
                             }}
                           >
-                            {label}
+                            {grpLabel}
                           </td>
                           {allSizes.map(t => {
                             if (!tamanhos.includes(t))
@@ -320,8 +354,8 @@ export default function AdminPage({ onSair, adminSenha }) {
                                   <span className="tam-zero">–</span>
                                 </td>
                               );
-                            const v = totais[peca][`${label} ${t}`] || 0;
-                            const pend = totaisPendentes[peca][`${label} ${t}`] || 0;
+                            const v = todasChavesTotais[key]?.[`${grpLabel} ${t}`] || 0;
+                            const pend = todasChavesPendentes[key]?.[`${grpLabel} ${t}`] || 0;
                             return (
                               <td key={t}>
                                 <span
@@ -355,7 +389,7 @@ export default function AdminPage({ onSair, adminSenha }) {
                   </tbody>
                 </table>
               </div>
-              );
+              ));
             })}
           </div>
         </div>
