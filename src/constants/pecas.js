@@ -6,8 +6,8 @@ import imgBlusa from "../img/Blusa.jpeg";
 import imgConjunto from "../img/Conjunto.jpeg";
 
 export const PECAS_CONFIG = [
-  { img: imgBlusa,    nome: "Blusa",    preco: 65.00 },
-  { img: imgConjunto, nome: "Conjunto", preco: 180.00, conjunto: true },
+  { img: imgConjunto,    nome: "Blusa",    preco: 65.00 },
+  { img: imgBlusa, nome: "Conjunto", preco: 180.00, conjunto: true },
 ];
 
 export const NOMES_PECAS = PECAS_CONFIG.map(p => p.nome);
