@@ -50,7 +50,7 @@ exports.handler = async (event) => {
     const isPix = pedido.pagamento_status === "pendente_pix_lojinha";
 
     // Preços das peças — mantenha sincronizado com PECAS_CONFIG do frontend
-    const PRECOS = { "Blusa": 65, "Conjunto": 180 };
+    const PRECOS = { "Blusa": 65, "Conjunto": 168 };
     // Peças que são conjunto (blusa + calça com tamanhos separados)
     const CONJUNTOS = ["Conjunto"];
 
