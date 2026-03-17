@@ -507,12 +507,7 @@ export default function AdminPage({ onSair, adminSenha }) {
                       })}
                     </div>
                     <div className="pedido-total-lbl">
-                      {/* PIX na lojinha: sem acréscimo | Cartão: +5% */}
-                      {fmt(
-                        p.forma_pagamento === "pix_lojinha"
-                          ? calcTotal(p.pecas)
-                          : calcTotal(p.pecas) * 1.05
-                      )}
+                      {fmt(calcTotal(p.pecas))}
                       <span className="pedido-forma">
                         via {FORMA_LABEL[p.forma_pagamento] || p.forma_pagamento}
                       </span>
