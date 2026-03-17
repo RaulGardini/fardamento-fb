@@ -21,7 +21,7 @@ export default function TelaPagamento({ nome, pecas, onVoltar }) {
       id: "pix_lojinha",
       icone: "❖",
       nome: "Pix",
-      desc: "Entre em contato com a academia FB para pagar via pix · Sem acréscimo",
+      desc: "Entre em contato com a academia FB para pagar via pix",
       valor: totalBase,
       cls: "lojinha",
       valCls: "lojinha-val",
@@ -30,11 +30,10 @@ export default function TelaPagamento({ nome, pecas, onVoltar }) {
       id: "credito_lojinha",
       icone: "🏪",
       nome: "Cartão de crédito",
-      desc: "Entre em contato com a academia FB para pagar via cartão de credito · +5% de acréscimo",
-      valor: fmt2(totalBase * 1.05),
+      desc: "Entre em contato com a academia FB para pagar via cartão de credito",
+      valor: totalBase,
       cls: "lojinha",
       valCls: "lojinha-val",
-      acrescimo: true,
     },
   ];
 

@@ -51,6 +51,7 @@ exports.handler = async (event) => {
 
     // Preços das peças — mantenha sincronizado com PECAS_CONFIG do frontend
     const PRECOS = { "Blusa": 65, "Conjunto": 168 };
+    
     // Peças que são conjunto (blusa + calça com tamanhos separados)
     const CONJUNTOS = ["Conjunto"];
 
@@ -69,8 +70,8 @@ exports.handler = async (event) => {
       }
     }
 
-    // PIX sem acréscimo, cartão +5%
-    const valorPago = parseFloat((isPix ? totalBase : totalBase * 1.05).toFixed(2));
+    // Mesmo valor para PIX e cartão (sem acréscimo)
+    const valorPago = parseFloat(totalBase.toFixed(2));
     const formaPagamento = isPix ? "pix_lojinha" : "credito_lojinha";
 
     // Atualiza para pago
